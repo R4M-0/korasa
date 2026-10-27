@@ -7,6 +7,7 @@
  *   node scripts/build-desktop.mjs --mac              # dmg for arm64 + x64 (macOS only)
  *   ... --publish always                              # upload to GitHub Releases (CI)
  *   ... --dir                                         # unpacked app only, no installer
+ *   ... -c.<key>=<value>                              # electron-builder config override
  *
  * Steps: build Next.js as a standalone server, assemble it with static assets
  * and migrations, then give each target platform/arch its own copy containing
@@ -133,6 +134,8 @@ try {
   const publishIdx = args.indexOf("--publish");
   ebArgs.push("--publish", publishIdx !== -1 ? args[publishIdx + 1] : "never");
   if (args.includes("--dir")) ebArgs.push("--dir");
+  // Pass config overrides straight through, e.g. -c.electronDist=/path/to/electron
+  ebArgs.push(...args.filter((a) => a.startsWith("-c.")));
   console.log(`\n▸ electron-builder ${ebArgs.join(" ")}`);
   execFileSync(process.execPath, [require.resolve("electron-builder/cli.js"), ...ebArgs], { cwd: stage, stdio: "inherit" });
 } finally {
