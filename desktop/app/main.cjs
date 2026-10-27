@@ -16,6 +16,16 @@ let server = null;
 let mainWindow = null;
 let origin = null;
 let quitting = false;
+let flushedForQuit = false;
+
+/** Ask the page to save pending edits (bounded, so quitting never hangs). */
+function flushWindow(win) {
+  if (!win || win.isDestroyed()) return Promise.resolve();
+  const flush = win.webContents
+    .executeJavaScript("window.__korasaFlush ? window.__korasaFlush() : true")
+    .catch(() => true);
+  return Promise.race([flush, new Promise((r) => setTimeout(r, 4000))]);
+}
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -121,14 +131,14 @@ function createWindow() {
   // Let the page persist pending edits before the window goes away.
   let closing = false;
   mainWindow.on("close", (event) => {
-    if (closing || !origin) return;
+    if (closing || flushedForQuit || !origin) return;
     event.preventDefault();
     closing = true;
-    const flush = mainWindow.webContents
-      .executeJavaScript("window.__korasaFlush ? window.__korasaFlush() : true")
-      .catch(() => true);
-    const timeout = new Promise((r) => setTimeout(r, 4000));
-    Promise.race([flush, timeout]).finally(() => mainWindow?.destroy());
+    const win = mainWindow;
+    flushWindow(win).finally(() => {
+      win.destroy();
+      if (quitting) app.quit();
+    });
   });
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -243,7 +253,15 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-app.on("before-quit", () => {
+// Quit order matters: save the page's pending edits while the local server is
+// still running, then stop the server.
+app.on("before-quit", (event) => {
+  if (!flushedForQuit && mainWindow && !mainWindow.isDestroyed() && origin) {
+    event.preventDefault();
+    flushedForQuit = true;
+    flushWindow(mainWindow).finally(() => app.quit());
+    return;
+  }
   quitting = true;
   server?.kill();
 });
