@@ -10,17 +10,41 @@ export { fileStem } from "@/lib/export/files";
 /** A4 in millimetres. */
 const A4 = { w: 210, h: 297 };
 
+interface DesktopBridge {
+  exportPdf(printPath: string, filename: string): Promise<{ saved?: string; canceled?: boolean; error?: string }>;
+}
+
+function desktopBridge(): DesktopBridge | undefined {
+  return typeof window === "undefined" ? undefined : (window as unknown as { korasaDesktop?: DesktopBridge }).korasaDesktop;
+}
+
+/** True inside the Korasa desktop app. */
+export function isDesktop() {
+  return desktopBridge() !== undefined;
+}
+
+export type PdfExportResult = { status: "saved"; path: string } | { status: "canceled" } | { status: "opened" };
+
 /**
- * Vector PDF via the browser's print engine. Opens the print route in a new
- * tab, which opens the print dialog ("Save as PDF") once fonts and images load.
- * Text stays selectable and shapes stay vector.
+ * Vector PDF of a project's pages (text stays selectable, shapes vector).
+ * Desktop: rendered by Electron and saved where the user chooses.
+ * Browser: opens the print route, which opens the print dialog ("Save as PDF").
  */
-export function printToPdf(projectId: string, pageIds?: string[]): void {
+export async function printToPdf(projectId: string, pageIds?: string[], filename = "Korasa"): Promise<PdfExportResult> {
   const params = new URLSearchParams();
   if (pageIds?.length) params.set("pages", pageIds.join(","));
   const qs = params.toString();
-  const win = window.open(`/print/${projectId}${qs ? `?${qs}` : ""}`, "_blank");
+  const printPath = `/print/${projectId}${qs ? `?${qs}` : ""}`;
+
+  const bridge = desktopBridge();
+  if (bridge) {
+    const result = await bridge.exportPdf(printPath, filename);
+    if (result.error) throw new Error(result.error);
+    return result.saved ? { status: "saved", path: result.saved } : { status: "canceled" };
+  }
+  const win = window.open(printPath, "_blank");
   if (!win) throw new Error("The print window was blocked. Allow pop-ups for Korasa and try again.");
+  return { status: "opened" };
 }
 
 /**

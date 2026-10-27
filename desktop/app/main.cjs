@@ -3,7 +3,7 @@
  * server listens on 127.0.0.1 only, and all data lives in the OS app-data
  * directory. No network services are contacted.
  */
-const { app, BrowserWindow, dialog, Menu, net, session, shell, utilityProcess } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, Menu, net, session, shell, utilityProcess } = require("electron");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const http = require("node:http");
@@ -107,7 +107,12 @@ function createWindow() {
     backgroundColor: "#f6f3ec",
     autoHideMenuBar: true,
     show: false,
-    webPreferences: { contextIsolation: true, sandbox: true, spellcheck: true },
+    webPreferences: {
+      contextIsolation: true,
+      sandbox: true,
+      spellcheck: true,
+      preload: path.join(__dirname, "preload.cjs"),
+    },
   });
   mainWindow.once("ready-to-show", () => mainWindow.show());
   mainWindow.loadFile(path.join(__dirname, "loading.html"));
@@ -152,12 +157,69 @@ function wireNavigation(win) {
   win.webContents.on("did-create-window", (child) => wireNavigation(child));
 }
 
+/**
+ * Save a vector PDF of a print route. Electron's PDF engine honours the page's
+ * CSS @page sizes, so A4 sheets (including mixed orientations) come out exact,
+ * with selectable text and vector shapes. Replaces window.print(), whose
+ * dialog is unreliable inside Electron windows.
+ */
+ipcMain.handle("korasa:export-pdf", async (event, { printPath, filename } = {}) => {
+  if (!origin || !event.senderFrame?.url.startsWith(origin)) return { error: "Not allowed" };
+  if (typeof printPath !== "string" || !/^\/print\/[\w-]+(\?[\w=,&-]*)?$/.test(printPath)) {
+    return { error: "Invalid export request" };
+  }
+  const safeName = `${path.basename(String(filename || "Korasa")).replace(/[\\/:*?"<>|]+/g, "-").replace(/\.pdf$/i, "") || "Korasa"}.pdf`;
+  const parent = BrowserWindow.fromWebContents(event.sender) ?? undefined;
+  const { canceled, filePath } = await dialog.showSaveDialog(parent, {
+    title: "Export PDF",
+    defaultPath: path.join(app.getPath("documents"), safeName),
+    filters: [{ name: "PDF document", extensions: ["pdf"] }],
+  });
+  if (canceled || !filePath) return { canceled: true };
+
+  const renderer = new BrowserWindow({
+    show: false,
+    width: 1200,
+    height: 900,
+    webPreferences: { contextIsolation: true, sandbox: true },
+  });
+  try {
+    await renderer.loadURL(`${origin}${printPath}${printPath.includes("?") ? "&" : "?"}auto=0`);
+    // The print view flags readiness once fonts and images have loaded.
+    const deadline = Date.now() + 30000;
+    for (;;) {
+      const state = await renderer.webContents.executeJavaScript(
+        "({ ready: document.documentElement.dataset.printReady === '1', error: document.documentElement.dataset.printError || null })",
+      );
+      if (state.error) throw new Error(state.error);
+      if (state.ready) break;
+      if (Date.now() > deadline) throw new Error("The pages took too long to render.");
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    const pdf = await renderer.webContents.printToPDF({
+      preferCSSPageSize: true,
+      printBackground: true,
+      margins: { marginType: "none" },
+    });
+    await fs.promises.writeFile(filePath, pdf);
+    return { saved: filePath };
+  } catch (err) {
+    return { error: err?.message ?? String(err) };
+  } finally {
+    renderer.destroy();
+  }
+});
+
 async function boot() {
   createWindow();
   const token = crypto.randomBytes(32).toString("hex");
   const port = await findPort(PREFERRED_PORT);
   origin = `http://${HOST}:${port}`;
   await session.defaultSession.cookies.set({ url: origin, name: "korasa_token", value: token, httpOnly: true, sameSite: "strict" });
+  // PNG, project-file and image-PDF downloads: ask where to save, starting in Downloads.
+  session.defaultSession.on("will-download", (_event, item) => {
+    item.setSaveDialogOptions({ defaultPath: path.join(app.getPath("downloads"), item.getFilename()) });
+  });
   await startServer(port, token);
   await waitForServer(origin, token);
   await mainWindow?.loadURL(origin);

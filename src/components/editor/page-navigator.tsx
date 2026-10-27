@@ -28,9 +28,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { BACKGROUNDS } from "@/lib/editor/scene";
-import { downloadPagePng, downloadPdf, fileStem, printToPdf } from "@/lib/export";
+import { downloadPagePng, downloadPdf, fileStem, printToPdf, type PdfExportResult } from "@/lib/export";
 import { cn } from "@/lib/utils";
 import { editor, useEditorStore } from "@/stores/editor-store";
+
+/** Confirm a finished vector-PDF export (desktop saves the file directly). */
+export function announcePdf(result: PdfExportResult) {
+  if (result.status === "saved") toast.success("PDF saved", { description: result.path });
+}
 
 export async function exportPage(pageId: string, kind: "png" | "pdf" | "print") {
   const s = useEditorStore.getState();
@@ -38,7 +43,7 @@ export async function exportPage(pageId: string, kind: "png" | "pdf" | "print") 
   if (!page || !s.project) return;
   const name = `${fileStem(s.project.name)}-${fileStem(page.title)}`;
   try {
-    if (kind === "print") return printToPdf(s.project.id, [pageId]);
+    if (kind === "print") return announcePdf(await printToPdf(s.project.id, [pageId], name));
     const t = toast.loading("Exporting…");
     if (kind === "png") await downloadPagePng(page, `${name}.png`);
     else await downloadPdf([page], `${name}.pdf`);

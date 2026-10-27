@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   AlertCircle,
   Check,
@@ -30,7 +30,7 @@ import {
 import { toast } from "sonner";
 import { EntityIcon } from "@/components/common/entity-icon";
 import { IconButton } from "@/components/editor/toolbar/primitives";
-import { exportPage } from "@/components/editor/page-navigator";
+import { announcePdf, exportPage } from "@/components/editor/page-navigator";
 import { ShortcutsDialog } from "@/components/editor/shortcuts-dialog";
 import { saveNow } from "@/components/editor/use-editor-shortcuts";
 import {
@@ -42,13 +42,16 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { downloadPdf, downloadProjectJson, fileStem, printToPdf } from "@/lib/export";
+import { downloadPdf, downloadProjectJson, fileStem, isDesktop, printToPdf } from "@/lib/export";
 import { kbd } from "@/lib/editor/platform";
 import { cn } from "@/lib/utils";
 import { editor, flushSaves, useEditorStore } from "@/stores/editor-store";
 import { useUiStore } from "@/stores/ui-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
 import type { ProjectViewMode } from "@/types";
+
+// isDesktop() never changes during a session; this just keeps SSR output stable.
+const noopSubscribe = () => () => {};
 
 function SaveIndicator() {
   const status = useEditorStore((s) => s.saveStatus);
@@ -132,6 +135,7 @@ export function TopBar() {
   const sidebarCollapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const desktop = useSyncExternalStore(noopSubscribe, isDesktop, () => false);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
@@ -231,7 +235,7 @@ export function TopBar() {
           <DropdownMenuContent align="end" className="w-72">
             <DropdownMenuLabel>Current page</DropdownMenuLabel>
             <DropdownMenuItem onClick={() => void run("Export", () => exportPage(useEditorStore.getState().activePageId!, "print"))}>
-              <Printer /> PDF (vector, via print dialog)
+              <Printer /> {desktop ? "PDF (vector)" : "PDF (vector, via print dialog)"}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => void run("Export", () => exportPage(useEditorStore.getState().activePageId!, "pdf"))}>
               <FileDown /> Download PDF
@@ -241,7 +245,9 @@ export function TopBar() {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Whole project</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => void run("Export", () => printToPdf(project.id))}>
+            <DropdownMenuItem
+              onClick={() => void run("Export", async () => announcePdf(await printToPdf(project.id, undefined, fileStem(project.name))))}
+            >
               <Printer /> PDF of all pages (vector)
             </DropdownMenuItem>
             <DropdownMenuItem

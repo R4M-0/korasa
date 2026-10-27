@@ -109,7 +109,11 @@ export function PrintView({
         if (!cancelled) setDoc(d);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message);
+        // Read by the desktop app's PDF exporter.
+        document.documentElement.dataset.printError = message;
       });
     return () => {
       cancelled = true;
@@ -129,6 +133,9 @@ export function PrintView({
     waitForAssets(sheetsRef.current).then(() => {
       if (cancelled) return;
       setReady(true);
+      // Signals the desktop app's PDF exporter that fonts and images are in.
+      if (pages.length) document.documentElement.dataset.printReady = "1";
+      else document.documentElement.dataset.printError = "There are no pages to export";
       if (autoPrint && !printedRef.current && pages.length) {
         printedRef.current = true;
         window.print();
