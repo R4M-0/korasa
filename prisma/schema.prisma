@@ -1,0 +1,113 @@
+// Korasa data model.
+// Single-user local deployment today; every row hangs off a Workspace so that
+// authentication, sync and multiple workspaces can be layered on later.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Workspace {
+  id          String       @id @default(cuid())
+  name        String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  collections Collection[]
+  projects    Project[]
+  attachments Attachment[]
+}
+
+// A Collection is a generic container. `kind` distinguishes courses from plain
+// folders, but both behave the same: they nest, hold projects, and can be
+// favorited. Courses carry optional academic metadata.
+model Collection {
+  id          String       @id @default(cuid())
+  workspaceId String
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      Collection?  @relation("CollectionTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Collection[] @relation("CollectionTree")
+  kind        String       @default("folder") // "course" | "folder"
+  name        String
+  description String       @default("")
+  icon        String?
+  color       String?
+  term        String? // semester / academic year
+  position    Float        @default(0)
+  favoritedAt DateTime?
+  deletedAt   DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  projects    Project[]
+
+  @@index([workspaceId, parentId])
+}
+
+model Project {
+  id           String      @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  collectionId String?
+  collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  name         String
+  description  String      @default("")
+  icon         String?
+  color        String?
+  position     Float       @default(0)
+  viewMode     String      @default("stack") // "stack" | "free" | "single"
+  favoritedAt  DateTime?
+  lastOpenedAt DateTime?
+  deletedAt    DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  pages        Page[]
+  attachments  Attachment[]
+
+  @@index([workspaceId, collectionId])
+}
+
+model Page {
+  id           String    @id @default(cuid())
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title        String    @default("Untitled page")
+  position     Float     @default(0)
+  background   String    @default("plain") // plain | ruled | grid | dotted | bordered
+  orientation  String    @default("portrait")
+  // Free-arrangement coordinates in workspace mode (null = auto layout).
+  posX         Float?
+  posY         Float?
+  // Versioned JSON scene (see src/lib/editor/scene.ts). Images are referenced
+  // by attachment id, never inlined.
+  scene        String    @default("{\"version\":1,\"objects\":[]}")
+  // Plain text extracted from the scene for search.
+  textContent  String    @default("")
+  revision     Int       @default(0)
+  favoritedAt  DateTime?
+  lastOpenedAt DateTime?
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([projectId, position])
+}
+
+// Binary data lives on disk (data/attachments); the row stores metadata.
+model Attachment {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  filename    String
+  mimeType    String
+  size        Int
+  width       Int?
+  height      Int?
+  storageKey  String    @unique
+  createdAt   DateTime  @default(now())
+}
