@@ -134,8 +134,10 @@ const pageSummarySelect = {
 let workspacePromise: Promise<{ id: string; name: string }> | null = null;
 
 /**
- * The local single-user workspace. Created (with sample content) on first
- * run. Memoised per server process so concurrent first requests don't race.
+ * The local single-user workspace, created empty on first run (the app's
+ * intro tour takes it from there). Set KORASA_SAMPLE=1 to start with the
+ * sample courses instead. Memoised per server process so concurrent first
+ * requests don't race.
  */
 export function getWorkspace() {
   if (!workspacePromise) {
@@ -143,7 +145,7 @@ export function getWorkspace() {
       const existing = await db.workspace.findFirst({ orderBy: { createdAt: "asc" } });
       if (existing) return { id: existing.id, name: existing.name };
       const ws = await db.workspace.create({ data: { name: "My Workspace" } });
-      if (process.env.KORASA_SKIP_SAMPLE !== "1") await seedWorkspace(db, ws.id);
+      if (process.env.KORASA_SAMPLE === "1") await seedWorkspace(db, ws.id);
       return { id: ws.id, name: ws.name };
     })().catch((err) => {
       workspacePromise = null;

@@ -7,14 +7,18 @@ const dataDir = path.resolve(process.env.KORASA_DATA_DIR ?? "data");
 const url = process.env.DATABASE_URL ?? `file:${path.join(dataDir, "korasa.db")}`;
 const db = new PrismaClient({ adapter: new PrismaBetterSqlite3({ url }) });
 
+/** Adds the sample courses and notes to an empty workspace (for demos and development). */
 async function main() {
-  if (await db.workspace.count()) {
-    console.log("Workspace already exists — skipping sample content.");
+  const ws =
+    (await db.workspace.findFirst({ orderBy: { createdAt: "asc" } })) ??
+    (await db.workspace.create({ data: { name: "My Workspace" } }));
+  const existing = (await db.collection.count({ where: { workspaceId: ws.id } })) + (await db.project.count({ where: { workspaceId: ws.id } }));
+  if (existing) {
+    console.log("The workspace already has content — skipping sample data.");
     return;
   }
-  const ws = await db.workspace.create({ data: { name: "My Workspace" } });
   await seedWorkspace(db, ws.id);
-  console.log("Seeded sample workspace.");
+  console.log("Added sample courses and notes.");
 }
 
 main().finally(() => db.$disconnect());

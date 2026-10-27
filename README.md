@@ -11,10 +11,10 @@ npm install          # also generates the Prisma client
 npm run dev          # applies migrations, then starts http://localhost:3000
 ```
 
-On first launch Korasa creates a local workspace with sample courses and notes.
-Data lives in `./data/` (SQLite database + image attachments). Set
-`KORASA_DATA_DIR` to store it elsewhere, or `KORASA_SKIP_SAMPLE=1` to start
-with an empty workspace.
+On first launch Korasa creates an empty local workspace and offers a short,
+skippable tour. Data lives in `./data/` (SQLite database + image attachments).
+Set `KORASA_DATA_DIR` to store it elsewhere. To explore with sample courses and
+notes, run `npm run db:seed` (or start with `KORASA_SAMPLE=1`).
 
 | Script               | Purpose                                       |
 | -------------------- | --------------------------------------------- |
