@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:" />
+    <style>
+      html, body { height: 100%; margin: 0; }
+      body {
+        display: grid; place-items: center;
+        background: #f6f3ec;
+        background-image: radial-gradient(#ddd6c9 1px, transparent 1px);
+        background-size: 22px 22px;
+        font: 14px/1.4 system-ui, sans-serif; color: #6b645a;
+      }
+      @media (prefers-color-scheme: dark) {
+        body { background-color: #1b1916; background-image: radial-gradient(#2c2925 1px, transparent 1px); color: #a39b8f; }
+      }
+      .sheet { width: 84px; height: 118px; background: #fffefb; box-shadow: 0 8px 24px -8px rgba(0,0,0,.35); margin: 0 auto 18px;
+        background-image: linear-gradient(#cfdbe8 1px, transparent 1px), linear-gradient(90deg, #cfdbe8 1px, transparent 1px);
+        background-size: 12px 12px; animation: breathe 1.6s ease-in-out infinite; }
+      @keyframes breathe { 50% { transform: translateY(-4px); } }
+    </style>
+  </head>
+  <body><div><div class="sheet"></div>Opening your notebook…</div></body>
+</html>
