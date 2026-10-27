@@ -42,7 +42,9 @@ html, body { height: auto !important; overflow: auto !important; }
   /* Toasters/portals after a landscape sheet would switch back to the default
      named page and force a trailing blank page. */
   body > :not(:has(.print-sheet)) { display: none !important; }
-  .print-desk { background: none !important; padding: 0 !important; }
+  /* overflow: hidden stops sub-pixel overflow of the last sheet from spilling
+     onto a trailing blank page (seen with Electron's printToPDF). */
+  .print-desk { background: none !important; padding: 0 !important; min-height: 0 !important; overflow: hidden !important; }
   .print-sheet { margin: 0 !important; box-shadow: none !important; break-after: page; }
   .print-sheet:last-child { break-after: auto; }
 }
