@@ -1,0 +1,61 @@
+# Korasa desktop packaging. Run via scripts/build-desktop.mjs, which prepares
+# desktop/build/<platform>-<arch>/server before electron-builder runs.
+appId: app.korasa.desktop
+productName: Korasa
+copyright: Copyright © 2026 Korasa
+directories:
+  app: desktop/app
+  buildResources: desktop/resources
+  output: dist-desktop
+asar: true
+files:
+  - "**/*"
+extraResources:
+  - from: desktop/build/${platform}-${arch}/server
+    to: server
+    filter: ["**/*"]
+# Stable names so "releases/latest/download/<name>" links never change.
+artifactName: Korasa-${os}-${arch}.${ext}
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+  category: Office
+  synopsis: Local-first notebook for A4 notes and diagrams
+  maintainer: R4M-0 <noreply@github.com>
+appImage:
+  artifactName: Korasa-linux-x86_64.AppImage
+deb:
+  artifactName: Korasa-linux-amd64.deb
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  artifactName: Korasa-windows-x64-setup.exe
+
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  category: public.app-category.productivity
+  # Ad-hoc signature (required to run on Apple Silicon). Not notarised, so the
+  # first launch needs "Open Anyway" in System Settings → Privacy & Security.
+  identity: "-"
+dmg:
+  artifactName: Korasa-mac-${arch}.${ext}
+
+publish:
+  provider: github
+  owner: R4M-0
+  repo: korasa
+  # CI uploads to a draft; publish it on GitHub once the installers are checked.
+  releaseType: draft
