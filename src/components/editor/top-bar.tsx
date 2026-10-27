@@ -7,6 +7,7 @@ import {
   AlertCircle,
   Check,
   ChevronRight,
+  Compass,
   Download,
   FileDown,
   FileJson,
@@ -47,6 +48,7 @@ import { downloadPdf, downloadProjectJson, fileStem, isDesktop, printToPdf } fro
 import { kbd } from "@/lib/editor/platform";
 import { cn } from "@/lib/utils";
 import { editor, flushSaves, useEditorStore } from "@/stores/editor-store";
+import { useTourStore } from "@/stores/tour-store";
 import { useUiStore } from "@/stores/ui-store";
 import { useWorkspaceStore } from "@/stores/workspace-store";
 import type { ProjectViewMode } from "@/types";
@@ -194,7 +196,9 @@ export function TopBar() {
       </nav>
 
       <div className="ml-auto flex items-center gap-0.5">
-        <SaveIndicator />
+        <div data-tour="save">
+          <SaveIndicator />
+        </div>
         <div className="mx-1 h-5 w-px bg-border" />
         <IconButton label="Undo" shortcut={kbd("Mod+Z")} disabled={!canUndo} onClick={() => editor.undo()}>
           <Undo2 />
@@ -203,7 +207,7 @@ export function TopBar() {
           <Redo2 />
         </IconButton>
         <div className="mx-1 h-5 w-px bg-border" />
-        <div role="radiogroup" aria-label="Layout" className="flex items-center rounded-lg bg-muted p-0.5">
+        <div role="radiogroup" aria-label="Layout" data-tour="layouts" className="flex items-center rounded-lg bg-muted p-0.5">
           {VIEW_MODES.map((v) => (
             <IconButton
               key={v.mode}
@@ -229,6 +233,7 @@ export function TopBar() {
 
         <DropdownMenu>
           <DropdownMenuTrigger
+            data-tour="export"
             className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <Download className="size-4" /> Export
@@ -293,6 +298,9 @@ export function TopBar() {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setShortcutsOpen(true)}>
               <Keyboard /> Keyboard shortcuts <DropdownMenuShortcut>?</DropdownMenuShortcut>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => useTourStore.getState().start("editor")}>
+              <Compass /> Editor tour
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

@@ -13,6 +13,8 @@ import { ZoomControls } from "@/components/editor/toolbar/zoom-controls";
 import { useEditorShortcuts } from "@/components/editor/use-editor-shortcuts";
 import { Button } from "@/components/ui/button";
 import { editor, flushSaves, useEditorStore } from "@/stores/editor-store";
+import { useTourStore } from "@/stores/tour-store";
+import { useUiStore } from "@/stores/ui-store";
 
 function EditorSkeleton() {
   return (
@@ -37,6 +39,15 @@ export function ProjectEditor({ projectId, pageId }: { projectId: string; pageId
   useEffect(() => {
     void editor.load(projectId, pageId);
   }, [projectId, pageId]);
+
+  // First project opened: offer the editor tour (once the welcome tour is done).
+  const ready = status === "ready" && loadedId === projectId;
+  const welcomeSeen = useUiStore((s) => s.toursSeen.welcome === true);
+  useEffect(() => {
+    if (!ready || !welcomeSeen) return;
+    const t = setTimeout(() => useTourStore.getState().startIfNew("editor"), 700);
+    return () => clearTimeout(t);
+  }, [ready, welcomeSeen]);
 
   // Small screens start with the page strip hidden to give the sheet room.
   useEffect(() => {

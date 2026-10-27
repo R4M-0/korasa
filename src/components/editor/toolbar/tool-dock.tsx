@@ -45,7 +45,7 @@ export function ToolDock() {
   const tool = useEditorStore((s) => s.tool);
   const locked = useEditorStore((s) => s.toolLocked);
   return (
-    <ToolbarSurface role="toolbar" aria-label="Tools" className="pointer-events-auto">
+    <ToolbarSurface role="toolbar" aria-label="Tools" data-tour="tools" className="pointer-events-auto">
       {GROUPS.map((group, i) => (
         <div key={i} className="flex items-center gap-0.5">
           {i > 0 && <ToolbarDivider />}

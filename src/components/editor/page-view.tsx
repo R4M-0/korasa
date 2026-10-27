@@ -95,6 +95,7 @@ export const PageView = memo(function PageView({ pageId, box, index }: { pageId:
       <div
         ref={paperRef}
         data-paper={pageId}
+        data-tour={isActive ? "paper" : undefined}
         className={cn("relative size-full overflow-hidden transition-shadow", isActive && "ring-primary/25")}
         style={{
           background: "var(--paper)",

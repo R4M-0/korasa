@@ -222,7 +222,7 @@ export function PageNavigator() {
   };
 
   return (
-    <aside data-ui aria-label="Pages" className="flex h-full w-[184px] shrink-0 flex-col border-r bg-sidebar">
+    <aside data-ui data-tour="pages" aria-label="Pages" className="flex h-full w-[184px] shrink-0 flex-col border-r bg-sidebar">
       <div className="flex h-10 items-center justify-between px-3">
         <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Pages · {order.length}</span>
         <button
