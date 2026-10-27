@@ -20,11 +20,14 @@ module.exports = {
     output: path.join(root, "dist-desktop"),
   },
   files: ["**/*"],
+  // Copy from the parent folder: electron-builder always drops a node_modules
+  // directory at the root of a copied folder, which would strip the server's
+  // dependencies. As "server/node_modules" it is kept.
   extraResources: [
     {
-      from: path.join(root, "desktop", "build", "${platform}-${arch}", "server"),
-      to: "server",
-      filter: ["**/*"],
+      from: path.join(root, "desktop", "build", "${platform}-${arch}"),
+      to: ".",
+      filter: ["server/**/*"],
     },
   ],
   // Stable names so "releases/latest/download/<name>" links never change.
@@ -38,6 +41,8 @@ module.exports = {
     category: "Office",
     synopsis: "Local-first notebook for A4 notes and diagrams",
     maintainer: "R4M-0 <omar.chiboub.w@gmail.com>",
+    // Lets desktop environments match the running window to its launcher.
+    syncDesktopName: true,
   },
   appImage: { artifactName: "Korasa-linux-x86_64.AppImage" },
   deb: { artifactName: "Korasa-linux-amd64.deb" },

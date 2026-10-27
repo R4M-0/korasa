@@ -3,7 +3,12 @@
   "productName": "Korasa",
   "version": "0.1.0",
   "description": "A local-first notebook for courses, projects and A4 notes.",
-  "author": "Korasa",
+  "author": {
+    "name": "R4M-0",
+    "email": "omar.chiboub.w@gmail.com"
+  },
   "license": "MIT",
-  "main": "main.cjs"
+  "main": "main.cjs",
+  "homepage": "https://github.com/R4M-0/korasa",
+  "desktopName": "korasa.desktop"
 }
