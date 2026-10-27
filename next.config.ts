@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
   // Never trace local user data or build artefacts into the server bundle.
   outputFileTracingExcludes: {
     "*": [
+      ".git/**",
       "data/**",
       "dist-desktop/**",
       "desktop/**",

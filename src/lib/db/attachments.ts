@@ -36,7 +36,7 @@ export async function saveAttachment(input: {
   const ws = await getWorkspace();
   const storageKey = `${nanoid(16)}.${ext}`;
   await fs.mkdir(ATTACHMENTS_DIR, { recursive: true });
-  await fs.writeFile(path.join(ATTACHMENTS_DIR, storageKey), input.data);
+  await fs.writeFile(path.join(/*turbopackIgnore: true*/ ATTACHMENTS_DIR, storageKey), input.data);
   try {
     const project = input.projectId
       ? await db.project.findUnique({ where: { id: input.projectId }, select: { id: true } })
@@ -55,7 +55,7 @@ export async function saveAttachment(input: {
     });
     return toAttachmentDTO(row);
   } catch (err) {
-    await fs.rm(path.join(ATTACHMENTS_DIR, storageKey), { force: true });
+    await fs.rm(path.join(/*turbopackIgnore: true*/ ATTACHMENTS_DIR, storageKey), { force: true });
     throw err;
   }
 }
@@ -63,7 +63,7 @@ export async function saveAttachment(input: {
 export async function readAttachment(id: string) {
   const row = await db.attachment.findUnique({ where: { id } });
   if (!row) throw new NotFoundError("Attachment not found");
-  const file = path.join(ATTACHMENTS_DIR, path.basename(row.storageKey));
+  const file = path.join(/*turbopackIgnore: true*/ ATTACHMENTS_DIR, path.basename(row.storageKey));
   try {
     const data = await fs.readFile(file);
     return { row, data };

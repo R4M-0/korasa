@@ -4,12 +4,14 @@ import fs from "node:fs";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "@/generated/prisma/client";
 
-export const DATA_DIR = path.resolve(process.env.KORASA_DATA_DIR ?? "data");
+// The data directory is chosen at runtime (the desktop app passes the OS
+// app-data folder), so keep it out of build-time file tracing.
+export const DATA_DIR = path.resolve(/*turbopackIgnore: true*/ process.env.KORASA_DATA_DIR ?? "data");
 export const ATTACHMENTS_DIR = path.join(DATA_DIR, "attachments");
 
 function createClient() {
   fs.mkdirSync(ATTACHMENTS_DIR, { recursive: true });
-  const url = process.env.DATABASE_URL ?? `file:${path.join(DATA_DIR, "korasa.db")}`;
+  const url = process.env.DATABASE_URL ?? `file:${path.join(/*turbopackIgnore: true*/ DATA_DIR, "korasa.db")}`;
   const adapter = new PrismaBetterSqlite3({ url });
   return new PrismaClient({ adapter });
 }
