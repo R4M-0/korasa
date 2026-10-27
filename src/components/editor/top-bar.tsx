@@ -36,6 +36,7 @@ import { saveNow } from "@/components/editor/use-editor-shortcuts";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -233,44 +234,49 @@ export function TopBar() {
             <Download className="size-4" /> Export
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-72">
-            <DropdownMenuLabel>Current page</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => void run("Export", () => exportPage(useEditorStore.getState().activePageId!, "print"))}>
-              <Printer /> {desktop ? "PDF (vector)" : "PDF (vector, via print dialog)"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => void run("Export", () => exportPage(useEditorStore.getState().activePageId!, "pdf"))}>
-              <FileDown /> Download PDF
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => void run("Export", () => exportPage(useEditorStore.getState().activePageId!, "png"))}>
-              <ImageDown /> Download PNG
-            </DropdownMenuItem>
+            {/* Base UI requires menu labels to sit inside a group. */}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Current page</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => void run("Export", () => exportPage(useEditorStore.getState().activePageId!, "print"))}>
+                <Printer /> {desktop ? "PDF (vector)" : "PDF (vector, via print dialog)"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void run("Export", () => exportPage(useEditorStore.getState().activePageId!, "pdf"))}>
+                <FileDown /> Download PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void run("Export", () => exportPage(useEditorStore.getState().activePageId!, "png"))}>
+                <ImageDown /> Download PNG
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel>Whole project</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => void run("Export", async () => announcePdf(await printToPdf(project.id, undefined, fileStem(project.name))))}
-            >
-              <Printer /> PDF of all pages (vector)
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() =>
-                void run("Export", async () => {
-                  const t = toast.loading("Rendering pages…");
-                  try {
-                    await downloadPdf(allPages(), `${fileStem(project.name)}.pdf`, (done, total) =>
-                      toast.loading(`Rendering page ${Math.min(done + 1, total)} of ${total}…`, { id: t }),
-                    );
-                    toast.success("PDF downloaded", { id: t });
-                  } catch (err) {
-                    toast.dismiss(t);
-                    throw err;
-                  }
-                })
-              }
-            >
-              <FileDown /> Download multi-page PDF
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => void run("Export", () => downloadProjectJson(project.id, project.name))}>
-              <FileJson /> Korasa project file (.json)
-            </DropdownMenuItem>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Whole project</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => void run("Export", async () => announcePdf(await printToPdf(project.id, undefined, fileStem(project.name))))}
+              >
+                <Printer /> PDF of all pages (vector)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  void run("Export", async () => {
+                    const t = toast.loading("Rendering pages…");
+                    try {
+                      await downloadPdf(allPages(), `${fileStem(project.name)}.pdf`, (done, total) =>
+                        toast.loading(`Rendering page ${Math.min(done + 1, total)} of ${total}…`, { id: t }),
+                      );
+                      toast.success("PDF downloaded", { id: t });
+                    } catch (err) {
+                      toast.dismiss(t);
+                      throw err;
+                    }
+                  })
+                }
+              >
+                <FileDown /> Download multi-page PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void run("Export", () => downloadProjectJson(project.id, project.name))}>
+                <FileJson /> Korasa project file (.json)
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
 
