@@ -6,6 +6,7 @@
  *   node scripts/build-desktop.mjs --win              # NSIS installer (needs Wine on Linux)
  *   node scripts/build-desktop.mjs --mac              # dmg for arm64 + x64 (macOS only)
  *   ... --publish always                              # upload to GitHub Releases (CI)
+ *   ... --dir                                         # unpacked app only, no installer
  *
  * Steps: build Next.js as a standalone server, assemble it with static assets
  * and migrations, then give each target platform/arch its own copy containing
@@ -51,6 +52,10 @@ for (const stray of [
   "data", "desktop", "landing", "dist-desktop", "scripts", "src", "prisma", ".env",
   "node_modules/sharp", "node_modules/@img",
 ]) fs.rmSync(path.join(base, stray), { recursive: true, force: true });
+// No dot-folders (.git, .github, editor config…) except Next's own .next.
+for (const f of fs.readdirSync(base)) {
+  if (f.startsWith(".") && f !== ".next") fs.rmSync(path.join(base, f), { recursive: true, force: true });
+}
 for (const f of fs.readdirSync(base)) {
   if (/\.(md|ya?ml|mjs|tsbuildinfo|jpe?g|png)$|^(components|skills-lock|tsconfig)\.json$|\.config\.ts$/.test(f)) fs.rmSync(path.join(base, f), { force: true });
 }
@@ -77,10 +82,9 @@ if (!fs.existsSync(path.join(base, "node_modules", "better-sqlite3"))) {
 
 // 3. Per-target copies with Electron-ABI native binaries
 const sqliteVersion = require(path.join(root, "node_modules", "better-sqlite3", "package.json")).version;
-const electronAbi = execFileSync(require("electron"), ["-p", "process.versions.modules"], {
-  env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
-  encoding: "utf8",
-}).trim();
+const electronVersion = require(path.join(root, "node_modules", "electron", "package.json")).version;
+// Look the ABI up rather than running Electron, so cross-builds work anywhere.
+const electronAbi = require("node-abi").getAbi(electronVersion, "electron");
 
 async function fetchNative(platform, arch, dest) {
   const name = `better-sqlite3-v${sqliteVersion}-electron-v${electronAbi}-${platform}-${arch}.tar.gz`;
@@ -117,13 +121,21 @@ for (const platform of platforms) {
   }
 }
 
-// 4. Package
-const ebArgs = [];
-if (platforms.includes("linux")) ebArgs.push("--linux");
-if (platforms.includes("win32")) ebArgs.push("--win");
-if (platforms.includes("darwin")) ebArgs.push("--mac");
-const publishIdx = args.indexOf("--publish");
-ebArgs.push("--publish", publishIdx !== -1 ? args[publishIdx + 1] : "never");
-console.log(`\n▸ electron-builder ${ebArgs.join(" ")}`);
-run(`npx electron-builder --config electron-builder.yml ${ebArgs.join(" ")}`);
+// 4. Package from a staging folder outside the repo, so electron-builder finds
+// no node_modules to copy (the server bundle above is self-contained).
+const stage = fs.mkdtempSync(path.join(os.tmpdir(), "korasa-app-"));
+try {
+  fs.cpSync(path.join(root, "desktop", "app"), stage, { recursive: true });
+  const ebArgs = ["--projectDir", stage, "--config", path.join(root, "desktop", "electron-builder.config.cjs")];
+  if (platforms.includes("linux")) ebArgs.push("--linux");
+  if (platforms.includes("win32")) ebArgs.push("--win");
+  if (platforms.includes("darwin")) ebArgs.push("--mac");
+  const publishIdx = args.indexOf("--publish");
+  ebArgs.push("--publish", publishIdx !== -1 ? args[publishIdx + 1] : "never");
+  if (args.includes("--dir")) ebArgs.push("--dir");
+  console.log(`\n▸ electron-builder ${ebArgs.join(" ")}`);
+  execFileSync(process.execPath, [require.resolve("electron-builder/cli.js"), ...ebArgs], { cwd: stage, stdio: "inherit" });
+} finally {
+  fs.rmSync(stage, { recursive: true, force: true });
+}
 console.log("\n✓ Installers written to dist-desktop/");
