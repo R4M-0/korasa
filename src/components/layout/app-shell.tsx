@@ -5,6 +5,8 @@ import { CommandPalette } from "@/components/command/command-palette";
 import { ImportProject } from "@/components/layout/import-project";
 import { Sidebar, SidebarFallback } from "@/components/layout/sidebar";
 import { EntityDialogs } from "@/components/projects/entity-dialogs";
+import { TourHost } from "@/components/tour/tour";
+import { useTourStore } from "@/stores/tour-store";
 import { useGlobalShortcuts } from "@/hooks/use-global-shortcuts";
 import { useWorkspaceStore } from "@/stores/workspace-store";
 
@@ -21,6 +23,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("visibilitychange", onFocus);
   }, []);
 
+  // First launch: offer the welcome tour once the workspace has loaded.
+  const ready = useWorkspaceStore((s) => s.status === "ready");
+  useEffect(() => {
+    if (!ready) return;
+    const t = setTimeout(() => useTourStore.getState().startIfNew("welcome"), 500);
+    return () => clearTimeout(t);
+  }, [ready]);
+
   return (
     <div className="flex h-full w-full overflow-hidden bg-background">
       {/* URL-reading hooks (usePathname/useSearchParams) need a Suspense boundary under cacheComponents. */}
@@ -33,6 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <EntityDialogs />
       <CommandPalette />
       <ImportProject />
+      <TourHost />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   Check,
   ChevronsUpDown,
   Clock,
+  Compass,
   Home,
   NotebookTabs,
   PanelLeftClose,
@@ -39,6 +40,7 @@ import { useDialogs } from "@/hooks/use-dialogs";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useModKey } from "@/hooks/use-mod-key";
 import { cn } from "@/lib/utils";
+import { useTourStore } from "@/stores/tour-store";
 import { useUiStore } from "@/stores/ui-store";
 import { childCollections, projectsIn, useWorkspaceStore } from "@/stores/workspace-store";
 
@@ -96,6 +98,7 @@ function SidebarFull() {
         <WorkspaceSwitcher />
         <button
           type="button"
+          data-tour="search"
           onClick={() => setCommandOpen(true)}
           className="flex h-8 w-full items-center gap-2 rounded-md border border-sidebar-border bg-card/70 px-2.5 text-[13px] text-muted-foreground shadow-xs transition-colors hover:bg-card hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
@@ -107,7 +110,7 @@ function SidebarFull() {
         </button>
         <CreateMenu
           trigger={
-            <Button className="h-8 w-full justify-start gap-2 px-2.5 shadow-xs">
+            <Button data-tour="create" className="h-8 w-full justify-start gap-2 px-2.5 shadow-xs">
               <Plus /> Create new
             </Button>
           }
@@ -120,7 +123,7 @@ function SidebarFull() {
         <NavLink href="/favorites" icon={<Star />} label="Favorites" />
       </nav>
 
-      <div className="mt-3 min-h-0 flex-1 overflow-y-auto px-2.5 pb-3 [scrollbar-width:thin]">
+      <div data-tour="library" className="mt-3 min-h-0 flex-1 overflow-y-auto px-2.5 pb-3 [scrollbar-width:thin]">
         <Suspense fallback={<TreeSkeleton />}>
           <Tree />
         </Suspense>
@@ -187,6 +190,9 @@ function WorkspaceSwitcher() {
             </span>
             {name}
             <Check className="ml-auto" />
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => useTourStore.getState().start("welcome")}>
+            <Compass /> Take the tour
           </DropdownMenuItem>
           <DropdownMenuItem disabled>
             <Plus /> New workspace

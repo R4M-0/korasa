@@ -43,7 +43,7 @@ function Greeting() {
           <span className="text-primary">.</span>
         </h1>
       </div>
-      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Quick create">
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Quick create" data-tour="start">
         <Button onClick={() => open({ kind: "create-project", collectionId: null })} className="gap-1.5 px-3">
           <FilePlus2 /> New project
         </Button>
